@@ -1,0 +1,114 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4; tabstop: 4; autoindent; -*-
+#
+# ok ..  here's what some output looks like:
+# header:
+# ['SESSIONNAME', 'USERNAME', 'ID', 'STATE', 'TYPE', 'DEVICE']
+#
+# Services line (where we are connecting from):
+# ['>services', '0', 'Disc']
+#
+# RDP Listeniner
+# ['rdp-tcp', '65536', 'Listen']
+#
+# A Console connection (active):
+# ['console', 'tima', '1', 'Active']
+#
+# A console that is not logged in:
+# ['console', '1', 'Conn']
+#
+# An active remote desktop connection:
+# ['rdp-tcp#0', 'Owner', '2', 'Active', 'rdpwd']
+#
+# A disconnected remote desktop connection
+# ['Owner', '2', 'Disc']
+
+def slices(s, *args):
+	position = 0
+	for length in args:
+		yield s[position:position + length]
+		position += length
+		
+
+def inventory_windows_sessions(checkname, info):
+	if info:
+		return [(None, "", None)]
+
+def check_windows_sessions(item, params, info):
+	output = []
+	counter = 0
+#	return (3, info)
+	for row in info:
+		# Exclude the header line
+		if row[0] == 'SESSIONNAME':
+			pass
+		# Exclude the 'current session', aka, services
+		elif row[0] == '>services':
+			pass
+		# Exclude the RDP listener
+		elif row[0] == 'rdp-tcp':
+			pass
+		else:
+			# Server 2003, console connections:
+			try:
+				if row[0] == '>console' and row[3] == 'Active':
+					counter+=1
+					output.append(row[1] + " (Active)")
+			except:
+				pass
+
+			# Server 2008, console connections:
+			try:
+				if row[0] == 'console' and row[3] == 'Active':
+					counter+=1
+					output.append(row[1] + " (Active)")
+			except:
+				pass
+
+			# Server 2003, Remote connections, connected
+			try:
+				if row[4] == 'rdpwd' and row[3] == 'Active':
+					counter+=1
+					output.append(row[1] + " (Active)")
+			except:
+				pass
+			
+			# Server 2003, remote connections, disconnected
+			try:
+				if row[4] == 'rdpwd' and row[3] == 'Disc':
+					counter+=1
+					output.append(row[1] + " (Disconnected)")
+			except:
+				pass
+			
+			# Server 2008, remote connections, connected
+			# Is caught by the Server 2003 remote connections branch
+
+			# Server 2008, remote connections, disconnected
+			try:
+				if row[2] == 'Disc' and row[0] != '>':
+					counter+=1
+					output.append(row[0] + " (Disconnected)")
+			except:
+				pass
+
+			# Windows XP, remote connections, connected
+			# Is caught by the Server 2003 remote connections branch
+
+			# Windows XP, remote connections, disconnected
+			# is caught by Server 2003 remote connections branch
+
+			# Windows 7, remote connections, connected
+			# Caught by Server 2008 remote connections branch
+
+			# Windows 7, remote connections, disconnected
+			# Caught by above.
+
+			
+	if counter == 0:
+		output.append("No one logged in")
+	outstring = '<br>'.join(output)
+	return (0, outstring, [('loggedoncount', counter)])
+
+check_info['windows_sessions'] = (check_windows_sessions, "Current active sessions", 1, inventory_windows_sessions)
+
