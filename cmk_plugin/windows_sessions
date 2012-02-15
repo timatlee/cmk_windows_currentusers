@@ -92,6 +92,24 @@ def check_windows_sessions(item, params, info):
 			except:
 				pass
 
+      # Server 2003, Citrix remote connections
+      # By Aled Jones <d.aled.jones@gmail.com>
+      try:
+        if row[4] == 'wdica' and row[3] == 'Active':
+          counter+=1
+          output.append(row[1] + " (Active)")
+      except:
+        pass
+      
+      # Server 2003, Citrix remote connections, disconnected
+      try:
+        if row[4] == 'wdica' and row[3] == 'Disc':
+          counter+=1
+          output.append(row[1] + " (Disconnected)")
+      except:
+        pass
+
+
 			# Windows XP, remote connections, connected
 			# Is caught by the Server 2003 remote connections branch
 
